@@ -1,0 +1,38 @@
+# .NET Build Artifacts
+bin/
+obj/
+*.csproj.user
+*.suo
+*.pdb
+
+# Sensitive Configuration Files
+appsettings.json
+appsettings.*.json
+.env
+
+# Logs
+*.log
+logs/
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS-Specific Files
+.DS_Store
+Thumbs.db
+
+# Package Cache
+packages/
+*.nupkg
+
+# Test Results
+TestResults/
+*.trx
+*.xml
+
+# GitHub Actions
+.github/workflows/*.cache
