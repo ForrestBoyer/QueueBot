@@ -21,7 +21,11 @@ namespace QueueBot.Services
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await _client.LoginAsync(TokenType.Bot, _configuration["BotTokens:QueueBot"]);
+            var token = _configuration["BotTokens:QueueBot"] 
+                ?? Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN")
+                ?? throw new Exception("Bot token not found in configuration or environment variables.");
+
+            await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
         }
 
