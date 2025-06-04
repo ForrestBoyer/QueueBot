@@ -2,6 +2,7 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using QueueBot.Managers;
 
 namespace QueueBot.Services
 {
@@ -9,14 +10,19 @@ namespace QueueBot.Services
     {
         private readonly DiscordSocketClient _client;
         private readonly IConfiguration _configuration;
+        private readonly QueueManager _queueManager;
+        private InteractionHandler _handler;
 
-        public QueueBotService(IConfiguration configuration, DiscordSocketClient socketClient)
+        public QueueBotService(IConfiguration configuration, DiscordSocketClient socketClient, QueueManager queueManager, InteractionHandler handler)
         {
             _configuration = configuration;
             _client = socketClient;
+            _queueManager = queueManager;
+            _handler = handler;
 
             _client.Log += LogAsync;
             _client.Ready += ReadyAsync;
+            _client.InteractionCreated += _handler.HandleInteractionAsync;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -38,6 +44,8 @@ namespace QueueBot.Services
         private async Task ReadyAsync()
         {
             Console.WriteLine($"{_client.CurrentUser} is connected!");
+
+            await _queueManager.InitializeQueues();
         }
 
         private Task LogAsync(LogMessage log)

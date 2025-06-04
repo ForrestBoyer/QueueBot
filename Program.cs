@@ -4,6 +4,8 @@ using Discord;
 using Discord.WebSocket;
 using QueueBot.Services;
 using Microsoft.Extensions.Logging;
+using QueueBot.Managers;
+using QueueBot.Data.Storage;
 
 class Program
 {
@@ -33,6 +35,8 @@ class Program
 
                 // Add DiscordBotService to DI container
                 services.AddHostedService<QueueBotService>();
+                services.AddSingleton<QueueManager>();
+                services.AddSingleton<InteractionHandler>();
             })
             .Build();
 
