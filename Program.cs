@@ -5,7 +5,6 @@ using Discord.WebSocket;
 using QueueBot.Services;
 using Microsoft.Extensions.Logging;
 using QueueBot.Managers;
-using QueueBot.Data.Storage;
 
 class Program
 {

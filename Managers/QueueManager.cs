@@ -1,7 +1,6 @@
 using QueueBot.Data.Types;
 using Discord.WebSocket;
 using QueueBot.Data.Storage;
-using Microsoft.Extensions.Configuration;
 
 namespace QueueBot.Managers
 {

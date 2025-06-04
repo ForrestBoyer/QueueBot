@@ -32,6 +32,8 @@ namespace QueueBot.Services
                     case "leave-button":
                          message = await _queueManager.GetQueue(messageComponent.GuildId.Value, messageComponent.ChannelId.Value).RemoveUserFromQueue(user);
                         break;
+                    default:
+                        break;
                 }
 
                 await interaction.RespondAsync(message, ephemeral: true);

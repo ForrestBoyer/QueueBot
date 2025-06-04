@@ -1,10 +1,5 @@
-using System.Linq;
 using Discord;
-using System;
-using System.Threading.Tasks;
 using Discord.WebSocket;
-using System.Net.Sockets;
-using Microsoft.Extensions.Configuration;
 using QueueBot.Data.Storage;
 
 namespace QueueBot.Data.Types
