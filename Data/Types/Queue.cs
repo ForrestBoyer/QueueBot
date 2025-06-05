@@ -168,13 +168,13 @@ namespace QueueBot.Data.Types
 
         public async Task UpdateQueueMessage()
         {
-
             // Build Message
             var embed = new EmbedBuilder()
                 .WithTitle($"{Channel.Name} Queue")
                 .WithColor(Color.DarkPurple)
                 .AddField("Speaker", _currentSpeaker?.GlobalName ?? "_None_", inline: true)
                 .AddField("Queue Count", _queue.Count.ToString(), inline: true)
+                .AddField("Time Per Person", $"{_config.SpeakingTime} seconds", inline: true)
                 .AddField("Queue List",
                     _queue.Count > 0
                     ? string.Join("\n", _queue.Select((u, i) => $"**{i + 1}.** {u.GlobalName}"))
