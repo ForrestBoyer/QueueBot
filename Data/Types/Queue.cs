@@ -1,6 +1,7 @@
 using Discord;
 using Discord.WebSocket;
 using QueueBot.Data.Storage;
+using QueueBot.Services;
 
 namespace QueueBot.Data.Types
 {
@@ -25,9 +26,9 @@ namespace QueueBot.Data.Types
             Channel = _client.GetChannel(config.ChannelId) as SocketVoiceChannel;
         }
 
-        public async Task InitializeQueue()
+        public void InitializeQueue()
         {
-            await UpdateQueueMessage();
+            BeginUpdateQueueMessageTimer();
         }
 
         public async Task<string> AddUserToQueue(SocketUser user)
@@ -47,7 +48,6 @@ namespace QueueBot.Data.Types
             else
             {
                 _queue.Add(user);
-                await UpdateQueueMessage();
                 return "You were added to the queue";
             }
         }
@@ -58,14 +58,13 @@ namespace QueueBot.Data.Types
             if (_currentSpeaker == user)
             {
                 _currentSpeaker = null;
-                await UpdateQueueMessage();
+                await UpdateMuteStates();
                 return "Removed from queue";
             }
             // User currently in Queue
             else if (_queue.Contains(user))
             {
                 _queue.Remove(user);
-                await UpdateQueueMessage();
                 return "Removed from queue";
             }
             // User not currently speaking or in queue
@@ -83,7 +82,6 @@ namespace QueueBot.Data.Types
                 _currentSpeaker = null;
                 _isTimerRunning = false;
                 await UpdateMuteStates();
-                await UpdateQueueMessage();
             }
             else
             {
@@ -104,7 +102,6 @@ namespace QueueBot.Data.Types
             _isTimerRunning = true;
 
             await UpdateMuteStates();
-            await UpdateQueueMessage();
             await RunTimer();
         }
 
@@ -116,8 +113,6 @@ namespace QueueBot.Data.Types
             {
                 await Task.Delay(1000);
                 _timeLeft--;
-
-                await UpdateQueueMessage();
             }
 
             if (_isTimerRunning)
@@ -127,8 +122,19 @@ namespace QueueBot.Data.Types
             }
         }
 
+        public async Task BeginUpdateQueueMessageTimer()
+        {
+            while (true)
+            {
+                await UpdateQueueMessage();
+                await Task.Delay(5000);
+            }
+        }
+
         public async Task UpdateQueueMessage()
         {
+            QueueBotService.LogAsync(new LogMessage(LogSeverity.Info, $"{Channel.Name}", "Updated queue message"));
+
             // Build Message
             var embedBuilder = new EmbedBuilder()
                 .WithTitle($"{Channel.Name} Queue")
@@ -144,7 +150,7 @@ namespace QueueBot.Data.Types
             var componentBuilder = new ComponentBuilder()
                 .WithButton("Join", "join-button", ButtonStyle.Success)
                 .WithButton("Leave", "leave-button", ButtonStyle.Danger)
-                .WithButton("Start", "start-queue", ButtonStyle.Secondary);
+                .WithButton("Start", "start-button", ButtonStyle.Secondary);
 
             // Check if message still exists in channel
             var messageStillExists = await Channel.GetMessageAsync(_config.MessageId.Value) != null;

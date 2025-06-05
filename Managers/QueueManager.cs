@@ -23,7 +23,7 @@ namespace QueueBot.Managers
             {
                 var queue = new Queue(_client, config);
                 _queues.Add((config.GuildId, config.ChannelId), queue);
-                await queue.InitializeQueue();
+                queue.InitializeQueue();
             }
         }
 

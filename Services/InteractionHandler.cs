@@ -47,7 +47,7 @@ namespace QueueBot.Services
                     case "leave-button":
                          message = await _queueManager.GetQueue(messageComponent.GuildId.Value, messageComponent.ChannelId.Value).RemoveUserFromQueue(user);
                         break;
-                    case "start-queue":
+                    case "start-button":
                         await _queueManager.GetQueue(messageComponent.GuildId.Value, messageComponent.ChannelId.Value).StartNextSpeaker();
                         message = "Queue started";
                         break;
