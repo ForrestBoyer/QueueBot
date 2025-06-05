@@ -31,5 +31,11 @@ namespace QueueBot.Managers
         {
             return _queues[(guildID, channelID)];
         }
+
+        public Queue GetQueue(ulong channelID)
+        {
+            var guildId = (_client.GetChannel(channelID) as SocketGuildChannel).Guild.Id;
+            return GetQueue(guildId, channelID);
+        }
     }
 }

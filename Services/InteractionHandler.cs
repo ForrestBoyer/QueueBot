@@ -1,6 +1,8 @@
 using Discord.WebSocket;
 using Discord;
 using QueueBot.Managers;
+using Discord.Rest;
+using System.Threading.Channels;
 
 namespace QueueBot.Services
 {
@@ -15,6 +17,19 @@ namespace QueueBot.Services
             _queueManager = queueManager;
 
             _client.InteractionCreated += HandleInteractionAsync;
+            _client.UserVoiceStateUpdated += HandleUserLeftChannel;
+        }
+
+        public async Task HandleUserLeftChannel(SocketUser user, SocketVoiceState state1, SocketVoiceState state2)
+        {
+            if (state1.VoiceChannel is not null)
+            {
+                var queue = _queueManager.GetQueue(state1.VoiceChannel.Id);
+                if (queue is not null)
+                {
+                    await queue.RemoveUserFromQueue(user);
+                }
+            }
         }
 
         public async Task HandleInteractionAsync(SocketInteraction interaction)
@@ -45,8 +60,6 @@ namespace QueueBot.Services
                     await interaction.RespondAsync(message, ephemeral: true);
                 }
             }
-
-            return;
         }
 
     }
