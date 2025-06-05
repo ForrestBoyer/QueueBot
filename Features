@@ -8,11 +8,22 @@ Neccessary:
 
   Change to role based
 
-  Message next in queue 5 seconds before
-
 Cool for the future:
 
   Priority Queue
 
   Selective queues - Only certain ranks can join queue
 
+Added:
+
+  Users auto reentered into queue
+
+  Queue messages only updated every 5 seconds to avoid rate limit
+
+  Users removed from queue when leaving channel
+
+  Queue message only updates if content has changed
+
+  Queue auto starts when the first person joins
+
+  Message next in queue 5 seconds before

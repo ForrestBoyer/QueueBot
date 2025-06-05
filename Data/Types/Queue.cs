@@ -1,3 +1,4 @@
+using System.Reflection.Emit;
 using Discord;
 using Discord.WebSocket;
 using QueueBot.Data.Storage;
@@ -127,12 +128,32 @@ namespace QueueBot.Data.Types
             {
                 await Task.Delay(1000);
                 _timeLeft--;
+                if (_timeLeft == 6)
+                {
+                    WarnUpcomingSpeaker();
+                }
             }
 
             if (_isTimerRunning)
             {
                 _isTimerRunning = false;
                 await StartNextSpeaker();
+            }
+        }
+
+        public async Task WarnUpcomingSpeaker()
+        {
+            if (_queue.Count != 0)
+            {
+                var tempMsg = await Channel.SendMessageAsync($"{_queue[0].Mention}, you’re up in 5 seconds!");
+                await Task.Delay(5000);
+                await tempMsg.DeleteAsync();
+            }
+            else if (_queue.Count == 0 && _currentSpeaker != null)
+            {
+                var tempMsg = await Channel.SendMessageAsync($"{_currentSpeaker.Mention}, the queue is empty, you will remain speaking!");
+                await Task.Delay(5000);
+                await tempMsg.DeleteAsync();
             }
         }
 
