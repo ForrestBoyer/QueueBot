@@ -32,7 +32,7 @@ namespace QueueBot.Data.Types
             BeginUpdateQueueMessageTimer();
         }
 
-        public async Task<string> AddUserToQueue(SocketUser user)
+        public string AddUserToQueue(SocketUser user)
         {
             if (!Channel.ConnectedUsers.Contains(user))
             {
@@ -86,9 +86,17 @@ namespace QueueBot.Data.Types
             }
             else
             {
+                // Re-enter previous speaker into the queue
+                var previousSpeaker = _currentSpeaker;
+
                 _currentSpeaker = _queue[0];
                 _queue.RemoveAt(0);
                 _timeLeft = _config.SpeakingTime;
+
+                if (previousSpeaker is not null)
+                {
+                    AddUserToQueue(previousSpeaker);
+                }
 
                 await UpdateMuteStates();
                 await RunTimer();
@@ -145,7 +153,7 @@ namespace QueueBot.Data.Types
                     _queue.Count > 0
                     ? string.Join("\n", _queue.Select((u, i) => $"**{i + 1}.** {u.GlobalName}"))
                     : "_Queue is currently empty_")
-                .AddField("Time Left", _isTimerRunning ? _timeLeft : "_No current speaker_")
+                .AddField("Time Left", _timeLeft == 0 ? "_No current speaker_" : _timeLeft)
                 .Build();
 
             // Only update message if content has changed

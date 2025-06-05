@@ -42,7 +42,7 @@ namespace QueueBot.Services
                 switch (messageComponent.Data.CustomId)
                 {
                     case "join-button":
-                        message = await _queueManager.GetQueue(messageComponent.GuildId.Value, messageComponent.ChannelId.Value).AddUserToQueue(user);
+                        message = _queueManager.GetQueue(messageComponent.GuildId.Value, messageComponent.ChannelId.Value).AddUserToQueue(user);
                         break;
                     case "leave-button":
                          message = await _queueManager.GetQueue(messageComponent.GuildId.Value, messageComponent.ChannelId.Value).RemoveUserFromQueue(user);
