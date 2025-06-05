@@ -49,8 +49,18 @@ namespace QueueBot.Data.Types
             else
             {
                 _queue.Add(user);
+                if (_queue.Count == 1)
+                {
+                    BeginQueue();
+                }
                 return "You were added to the queue";
             }
+        }
+
+        public async Task BeginQueue()
+        {
+            await Task.Delay(5000);
+            StartNextSpeaker();
         }
 
         public async Task<string> RemoveUserFromQueue(SocketUser user)
@@ -77,30 +87,25 @@ namespace QueueBot.Data.Types
 
         public async Task StartNextSpeaker()
         {
-            // Queue is empty
-            if (_queue.Count == 0)
+            var previousSpeaker = _currentSpeaker;
+
+            // End queue conditions
+            if (previousSpeaker is null && _queue.Count == 0)
             {
-                _currentSpeaker = null;
-                _isTimerRunning = false;
                 await UpdateMuteStates();
+                return;
             }
-            else
+            else if (previousSpeaker is not null)
             {
-                // Re-enter previous speaker into the queue
-                var previousSpeaker = _currentSpeaker;
-
-                _currentSpeaker = _queue[0];
-                _queue.RemoveAt(0);
-                _timeLeft = _config.SpeakingTime;
-
-                if (previousSpeaker is not null)
-                {
-                    AddUserToQueue(previousSpeaker);
-                }
-
-                await UpdateMuteStates();
-                await RunTimer();
+                _queue.Add(previousSpeaker);
             }
+
+            _currentSpeaker = _queue[0];
+            _queue.RemoveAt(0);
+            _timeLeft = _config.SpeakingTime;
+
+            await UpdateMuteStates();
+            await RunTimer();
         }
 
         public async Task MakeUserCurrentSpeaker(SocketUser user)
@@ -169,8 +174,7 @@ namespace QueueBot.Data.Types
             // Build buttons
             var componentBuilder = new ComponentBuilder()
                 .WithButton("Join", "join-button", ButtonStyle.Success)
-                .WithButton("Leave", "leave-button", ButtonStyle.Danger)
-                .WithButton("Start", "start-button", ButtonStyle.Secondary);
+                .WithButton("Leave", "leave-button", ButtonStyle.Danger);
 
             // Check if message still exists in channel
             var messageStillExists = false;

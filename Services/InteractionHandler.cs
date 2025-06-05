@@ -22,7 +22,7 @@ namespace QueueBot.Services
 
         public async Task HandleUserLeftChannel(SocketUser user, SocketVoiceState state1, SocketVoiceState state2)
         {
-            if (state1.VoiceChannel is not null)
+            if (state1.VoiceChannel is not null && state1.VoiceChannel != state2.VoiceChannel)
             {
                 var queue = _queueManager.GetQueue(state1.VoiceChannel.Id);
                 if (queue is not null)
@@ -46,10 +46,6 @@ namespace QueueBot.Services
                         break;
                     case "leave-button":
                          message = await _queueManager.GetQueue(messageComponent.GuildId.Value, messageComponent.ChannelId.Value).RemoveUserFromQueue(user);
-                        break;
-                    case "start-button":
-                        await _queueManager.GetQueue(messageComponent.GuildId.Value, messageComponent.ChannelId.Value).StartNextSpeaker();
-                        message = "Queue started";
                         break;
                     default:
                         break;
