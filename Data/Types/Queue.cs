@@ -82,21 +82,36 @@ namespace QueueBot.Data.Types
             {
                 _currentSpeaker = null;
                 _isTimerRunning = false;
+                await UpdateMuteStates();
+                await UpdateQueueMessage();
             }
             else
             {
                 _currentSpeaker = _queue[0];
                 _queue.RemoveAt(0);
                 _timeLeft = _config.SpeakingTime;
-                _isTimerRunning = true;
 
                 await UpdateMuteStates();
                 await RunTimer();
             }
         }
 
+        public async Task MakeUserCurrentSpeaker(SocketUser user)
+        {
+            _currentSpeaker = user;
+            _queue.Remove(user);
+            _timeLeft = _config.SpeakingTime;
+            _isTimerRunning = true;
+
+            await UpdateMuteStates();
+            await UpdateQueueMessage();
+            await RunTimer();
+        }
+
         public async Task RunTimer()
         {
+            _isTimerRunning = true;
+
             while (_isTimerRunning && _timeLeft > 0)
             {
                 await Task.Delay(1000);
@@ -116,13 +131,20 @@ namespace QueueBot.Data.Types
         {
             // Build Message
             var embedBuilder = new EmbedBuilder()
-                .WithTitle("Current Queue:")
-                .WithDescription(string.Join("\n", _queue.Select(u => u.GlobalName)))
-                .WithColor(Color.Purple);
+                .WithTitle($"{Channel.Name} Queue")
+                .WithColor(Color.DarkPurple)
+                .AddField("Speaker", _currentSpeaker?.GlobalName ?? "_None_", inline: true)
+                .AddField("Queue Count", _queue.Count.ToString(), inline: true)
+                .AddField("Queue List",
+                    _queue.Count > 0
+                    ? string.Join("\n", _queue.Select((u, i) => $"**{i + 1}.** {u.GlobalName}"))
+                    : "_Queue is currently empty_")
+                .AddField("Time Left", _isTimerRunning ? _timeLeft : "_No current speaker_");
 
             var componentBuilder = new ComponentBuilder()
                 .WithButton("Join", "join-button", ButtonStyle.Success)
-                .WithButton("Leave", "leave-button", ButtonStyle.Danger);
+                .WithButton("Leave", "leave-button", ButtonStyle.Danger)
+                .WithButton("Start", "start-queue", ButtonStyle.Secondary);
 
             // Check if message still exists in channel
             var messageStillExists = await Channel.GetMessageAsync(_config.MessageId.Value) != null;
@@ -145,7 +167,6 @@ namespace QueueBot.Data.Types
                     msg.Components = componentBuilder.Build();
                 });
             }
-
         }
 
         public async Task UpdateMuteStates()
