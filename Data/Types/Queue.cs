@@ -14,6 +14,7 @@ namespace QueueBot.Data.Types
         private bool _isTimerRunning;
         private int _timeLeft;
         private SocketVoiceChannel Channel { get; set; }
+        private string? _lastEmbedHash = null;
 
         public Queue(DiscordSocketClient client, QueueConfig config) 
         {
@@ -133,10 +134,9 @@ namespace QueueBot.Data.Types
 
         public async Task UpdateQueueMessage()
         {
-            QueueBotService.LogAsync(new LogMessage(LogSeverity.Info, $"{Channel.Name}", "Updated queue message"));
 
             // Build Message
-            var embedBuilder = new EmbedBuilder()
+            var embed = new EmbedBuilder()
                 .WithTitle($"{Channel.Name} Queue")
                 .WithColor(Color.DarkPurple)
                 .AddField("Speaker", _currentSpeaker?.GlobalName ?? "_None_", inline: true)
@@ -145,20 +145,36 @@ namespace QueueBot.Data.Types
                     _queue.Count > 0
                     ? string.Join("\n", _queue.Select((u, i) => $"**{i + 1}.** {u.GlobalName}"))
                     : "_Queue is currently empty_")
-                .AddField("Time Left", _isTimerRunning ? _timeLeft : "_No current speaker_");
+                .AddField("Time Left", _isTimerRunning ? _timeLeft : "_No current speaker_")
+                .Build();
 
+            // Only update message if content has changed
+            string newHash = embed.Title + string.Join("", embed.Fields.Select(f => f.Value));
+
+            if (newHash == _lastEmbedHash)
+                return;
+
+            _lastEmbedHash = newHash;
+
+            QueueBotService.LogAsync(new LogMessage(LogSeverity.Info, $"{Channel.Name}", "Updated queue message"));
+
+            // Build buttons
             var componentBuilder = new ComponentBuilder()
                 .WithButton("Join", "join-button", ButtonStyle.Success)
                 .WithButton("Leave", "leave-button", ButtonStyle.Danger)
                 .WithButton("Start", "start-button", ButtonStyle.Secondary);
 
             // Check if message still exists in channel
-            var messageStillExists = await Channel.GetMessageAsync(_config.MessageId.Value) != null;
+            var messageStillExists = false;
+            if (_config.MessageId is not null)
+            {
+                messageStillExists = await Channel.GetMessageAsync(_config.MessageId.Value) != null;
+            }
 
             // If message never or no longer exists, send it
             if (_config.MessageId is null || !messageStillExists)
             {
-                var message = await Channel.SendMessageAsync(embed: embedBuilder.Build(), components: componentBuilder.Build());
+                var message = await Channel.SendMessageAsync(embed: embed, components: componentBuilder.Build());
                 _config.MessageId = message.Id;
                 await QueueStorage.SaveConfigAsync(_config);
             }
@@ -169,7 +185,7 @@ namespace QueueBot.Data.Types
                 var message = await Channel.GetMessageAsync(id) as IUserMessage;
                 await message.ModifyAsync(msg =>
                 {
-                    msg.Embed = embedBuilder.Build();
+                    msg.Embed = embed;
                     msg.Components = componentBuilder.Build();
                 });
             }
