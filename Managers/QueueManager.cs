@@ -17,7 +17,7 @@ namespace QueueBot.Managers
 
         public async Task InitializeQueues()
         {
-            var queueConfigs = await QueueStorage.GetAllConfigsAsync();
+            var queueConfigs = await QueueStorageService.GetAllConfigsAsync();
 
             foreach (var config in queueConfigs)
             {
@@ -25,6 +25,19 @@ namespace QueueBot.Managers
                 _queues.Add((config.GuildId, config.ChannelId), queue);
                 queue.InitializeQueue();
             }
+        }
+
+        public async Task InitializeQueue(QueueConfig config)
+        {
+            var queue = new Queue(_client, config);
+            _queues.Add((config.GuildId, config.ChannelId), queue);
+            queue.InitializeQueue();
+        }
+
+        public async Task EditQueue(QueueConfig config)
+        {
+            var queue = _queues.Values.Where(q => q.Config.ChannelId == config.ChannelId).FirstOrDefault();
+            queue?.InitializeQueue();
         }
 
         public Queue GetQueue(ulong guildID, ulong channelID)

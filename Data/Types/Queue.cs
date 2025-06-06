@@ -10,7 +10,7 @@ namespace QueueBot.Data.Types
     {
         private readonly DiscordSocketClient _client;
         private readonly List<SocketUser> _queue;
-        private readonly QueueConfig _config;
+        public QueueConfig Config { get; set; }
         private SocketUser? _currentSpeaker;
         private bool _isTimerRunning;
         private int _timeLeft;
@@ -21,15 +21,16 @@ namespace QueueBot.Data.Types
         {
             _client = client;
             _queue = new List<SocketUser>();
-            _config = config;
+            Config = config;
             _currentSpeaker = null;
             _isTimerRunning = false;
             _timeLeft = 0;
             Channel = _client.GetChannel(config.ChannelId) as SocketVoiceChannel;
         }
 
-        public void InitializeQueue()
+        public async Task InitializeQueue()
         {
+            Config = await QueueStorageService.GetConfigAsync(Channel.Id);
             BeginUpdateQueueMessageTimer();
         }
 
@@ -103,7 +104,7 @@ namespace QueueBot.Data.Types
 
             _currentSpeaker = _queue[0];
             _queue.RemoveAt(0);
-            _timeLeft = _config.SpeakingTime;
+            _timeLeft = Config.SpeakingTime;
 
             await UpdateMuteStates();
             await RunTimer();
@@ -113,7 +114,7 @@ namespace QueueBot.Data.Types
         {
             _currentSpeaker = user;
             _queue.Remove(user);
-            _timeLeft = _config.SpeakingTime;
+            _timeLeft = Config.SpeakingTime;
             _isTimerRunning = true;
 
             await UpdateMuteStates();
@@ -174,7 +175,7 @@ namespace QueueBot.Data.Types
                 .WithColor(Color.DarkPurple)
                 .AddField("Speaker", _currentSpeaker?.GlobalName ?? "_None_", inline: true)
                 .AddField("Queue Count", _queue.Count.ToString(), inline: true)
-                .AddField("Time Per Person", $"{_config.SpeakingTime} seconds", inline: true)
+                .AddField("Time Per Person", $"{Config.SpeakingTime} seconds", inline: true)
                 .AddField("Queue List",
                     _queue.Count > 0
                     ? string.Join("\n", _queue.Select((u, i) => $"**{i + 1}.** {u.GlobalName}"))
@@ -199,22 +200,22 @@ namespace QueueBot.Data.Types
 
             // Check if message still exists in channel
             var messageStillExists = false;
-            if (_config.MessageId is not null)
+            if (Config.MessageId is not null)
             {
-                messageStillExists = await Channel.GetMessageAsync(_config.MessageId.Value) != null;
+                messageStillExists = await Channel.GetMessageAsync(Config.MessageId.Value) != null;
             }
 
             // If message never or no longer exists, send it
-            if (_config.MessageId is null || !messageStillExists)
+            if (Config.MessageId is null || !messageStillExists)
             {
                 var message = await Channel.SendMessageAsync(embed: embed, components: componentBuilder.Build());
-                _config.MessageId = message.Id;
-                await QueueStorage.SaveConfigAsync(_config);
+                Config.MessageId = message.Id;
+                await QueueStorageService.SaveConfigAsync(Config);
             }
             // If message does exist, update it
             else
             {
-                var id = _config.MessageId.Value;
+                var id = Config.MessageId.Value;
                 var message = await Channel.GetMessageAsync(id) as IUserMessage;
                 await message.ModifyAsync(msg =>
                 {

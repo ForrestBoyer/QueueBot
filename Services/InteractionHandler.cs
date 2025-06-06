@@ -1,8 +1,11 @@
+using System.Linq;
 using Discord.WebSocket;
 using Discord;
 using QueueBot.Managers;
 using Discord.Rest;
 using System.Threading.Channels;
+using QueueBot.Data.Types;
+using QueueBot.Data.Storage;
 
 namespace QueueBot.Services
 {
@@ -34,6 +37,7 @@ namespace QueueBot.Services
 
         public async Task HandleInteractionAsync(SocketInteraction interaction)
         {
+            // Button Interactions
             if (interaction is SocketMessageComponent messageComponent && messageComponent.Data.Type is ComponentType.Button)
             {
                 var user = messageComponent.User;
@@ -56,7 +60,62 @@ namespace QueueBot.Services
                     await interaction.RespondAsync(message, ephemeral: true);
                 }
             }
-        }
+            
+            // Slash Command Interactions
+            else if (interaction is SocketSlashCommand command)
+            {
+                switch (command.CommandName)
+                {
+                    case "configure-queue-channel":
+                    {
+                        var channel = command.Data.Options.Where(d => d.Name == "channel").FirstOrDefault()?.Value;
+                        var speakingTimeValue = command.Data.Options.Where(d => d.Name == "speaking-time").FirstOrDefault()?.Value;
+                        if (channel is SocketVoiceChannel c && speakingTimeValue is long speakingTime)
+                        {
+                            var config = await QueueStorageService.GetConfigAsync(c.Id);
+                            config.SpeakingTime = (int)speakingTime;
+                            await QueueStorageService.SaveConfigAsync(config);
+                            await _queueManager.EditQueue(config);
+                            await interaction.RespondAsync("Queue channel configured!", ephemeral: true);
+                        }
+                    }
+                    break;
 
+                    case "create-queue-channel":
+                    {
+                        var channel = command.Data.Options.Where(d => d.Name == "channel").FirstOrDefault()?.Value;
+                        var speakingTimeValue = command.Data.Options.Where(d => d.Name == "speaking-time").FirstOrDefault()?.Value;
+                        if (channel is SocketVoiceChannel c && speakingTimeValue is long speakingTime)
+                        {
+                            var config = new QueueConfig(command.GuildId.Value, c.Id, null, (int)speakingTime);
+                            await QueueStorageService.SaveConfigAsync(config);
+                            await _queueManager.InitializeQueue(config);
+                            await interaction.RespondAsync("Queue channel configured!", ephemeral: true);
+                        }
+                    }
+                    break;
+
+                    case "remove-queue-channel":
+                    {
+                        var channel = command.Data.Options.Where(d => d.Name == "channel").FirstOrDefault()?.Value;
+                        if (channel is SocketVoiceChannel ch)
+                        {
+                            var messageId = (await QueueStorageService.GetConfigAsync(ch.Id)).MessageId;
+                            if (messageId is not null)
+                            {
+                                var m = messageId.Value;
+                                await (_client.GetChannel(ch.Id) as SocketVoiceChannel).DeleteMessageAsync(m);
+                            }
+                            await QueueStorageService.RemoveConfigAsync(ch.Id);
+                            await interaction.RespondAsync("Queue channel removed!", ephemeral: true);
+                        }
+                    }
+                    break;
+
+                    default:
+                        break;
+                }
+            }
+        }
     }
 }
